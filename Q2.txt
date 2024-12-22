@@ -1,0 +1,59 @@
+ 2. Kolik je možné si koupit litrů mléka a kilogramů chleba za první a poslední srovnatelné období v dostupných datech cen a mezd?
+ */
+
+-- Kupní síla obyvatel pro ČR v letech 2006 a 2018 vzhledem k cenám chleba a mléka.
+SELECT
+    product_name,
+    avg_price_value,
+    price_unit,
+    "year",
+    ROUND(AVG(avg_price_value)::numeric, 2) AS "avg_price",
+    ROUND(AVG(avg_payroll_value)::numeric, 2) AS "avg_wages",
+    ROUND((AVG(avg_payroll_value) / AVG(avg_price_value))::numeric, 2) AS avg_purchasing_power
+FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+WHERE "year" IN (2006, 2018)
+    AND product_name IN ('Mléko polotučné pasterované', 'Chléb konzumní kmínový')
+GROUP BY product_name, avg_price_value, price_unit, "year";
+-- V roce 2006 bylo za průměrnou cenu chleba 16,12 Kč a průměrnou mzdu 20 753,78 Kč možné nakoupit 1 287,18 kg chleba a 1 437 l mléka za cenu 14,44 Kč. V roce 2018 bylo za cenu 24,24 Kč a průměrnou mzdu 32 536 Kč možné nakoupit 1 342 kg chleba a 1 642 l mléka za průměrnou cenu 19,82 Kč. 
+
+
+
+-- podle odvětví
+SELECT
+    industry_branch_name,
+    product_name,
+    avg_price_value,
+    price_unit,
+    year,
+    ROUND(AVG(avg_price_value)::numeric, 2) AS "avg_price",
+    ROUND(AVG(avg_payroll_value)::numeric, 2) AS "avg_wages",
+    ROUND((AVG(avg_payroll_value) / AVG(avg_price_value))::numeric, 2) AS avg_purchasing_power
+FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+WHERE year IN (2006, 2018)
+    AND product_name IN ('Mléko polotučné pasterované', 'Chléb konzumní kmínový')
+GROUP BY industry_branch_name, product_name, avg_price_value, price_unit, year;
+
+
+
+--  podle kategorie potravin a odvětví, seřazené podle kupní síly
+SELECT
+    product_name,
+    avg_price_value,
+    price_unit,
+    year,
+    ROUND(AVG(avg_price_value)::numeric, 2) AS "avg_price",
+    ROUND(AVG(avg_payroll_value)::numeric, 2) AS "avg_wages",
+    ROUND((AVG(avg_payroll_value) / AVG(avg_price_value))::numeric, 2) AS avg_purchasing_power,
+    industry_branch_name
+FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+WHERE year IN (2006, 2018)
+    AND product_name IN ('Mléko polotučné pasterované', 'Chléb konzumní kmínový')
+GROUP BY product_name, avg_price_value, price_unit, year, industry_branch_name
+ORDER BY avg_purchasing_power DESC;
+
+
+
+
+
+
+

@@ -1,0 +1,48 @@
+# Vytvoření dat
+data = {
+    'year': [2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018],
+    'gdp_rise': [None, 5.57, 2.69, -4.66, 2.43, 1.76, -0.79, -0.05, 2.26, 5.39, 2.54, 5.17, 3.2],
+    'avg_pay_rise': [None, 6.91, 7.08, 2.84, 2.15, 2.33, 2.61, -0.78, 2.55, 2.9, 3.93, 6.4, 7.88],
+    'avg_price_rise': [None, 9.26, 8.92, -6.59, 1.52, 4.84, 7.47, 6.01, -0.62, -0.69, -1.4, 7.06, 2.41]
+}
+
+# Odstranění prvního prvku (None)
+years = data['year'][1:]
+gdp_rise = data['gdp_rise'][1:]
+avg_pay_rise = data['avg_pay_rise'][1:]
+avg_price_rise = data['avg_price_rise'][1:]
+
+# Výpočet korelace
+def calculate_correlation(x, y):
+    n = len(x)
+    sum1 = sum(x)
+    sum2 = sum(y)
+    sum1_sq = sum(map(lambda a: a * a, x))
+    sum2_sq = sum(map(lambda a: a * a, y))
+    p_sum = sum(map(lambda a, b: a * b, x, y))
+
+    num = p_sum - (sum1 * sum2 / n)
+    den = ((sum1_sq - (sum1 * sum1) / n) * (sum2_sq - (sum2 * sum2) / n)) ** 0.5
+
+    if den == 0:
+        return 0
+    return num / den
+
+corr_gdp_pay = calculate_correlation(gdp_rise, avg_pay_rise)
+corr_gdp_price = calculate_correlation(gdp_rise, avg_price_rise)
+corr_pay_price = calculate_correlation(avg_pay_rise, avg_price_rise)
+
+print(f"Korelace mezi GDP a průměrným růstem mezd: {corr_gdp_pay}")
+print(f"Korelace mezi GDP a průměrným růstem cen: {corr_gdp_price}")
+print(f"Korelace mezi průměrným růstem mezd a průměrným růstem cen: {corr_pay_price}")
+
+# Vytvoření textových grafů
+def print_graph(years, values, title):
+    print(title)
+    for year, value in zip(years, values):
+        print(f"{year}: {'#' * int(value)}")
+    print("\n")
+
+print_graph(years, gdp_rise, "GDP Rise Over Years")
+print_graph(years, avg_pay_rise, "Average Pay Rise Over Years")
+print_graph(years, avg_price_rise, "Average Price Rise Over Years")

@@ -1,0 +1,26 @@
+--3.Která kategorie potravin zdražuje nejpomaleji (je u ní nejnižší percentuální meziroční nárůst)?
+SELECT
+    product_name AS kategorie_potravin,
+    ROUND(((MAX(avg_price_value) - MIN(avg_price_value)) / MIN(avg_price_value)) * 100, 2) AS procentualni_rust
+FROM
+    t_Bc_Petr_Slanina_MBA_project_SQL_primary_final
+GROUP BY
+    product_name
+ORDER BY
+    procentualni_rust ASC 
+LIMIT 10;
+
+
+------ Nejpomaleji zdražují Jakostní víno bílé  (8,31%), Přírodní minerální voda(15,6%) , Vepřová pečeně(18,22%)
+---Vepřová pečeně s kostí: 51.56%
+--Přírodní minerální voda uhličitá: 59.72%
+--Jakostní víno bílé: 65.36%
+--Hovězí maso zadní bez kosti: 69.28%
+--Šunkový salám: 74.27%
+----Kapr zivý: 84.94%
+--Mléko polotučné pasterované: 86.14%
+--Pivo výčepní, světlé, lahvové: 104.4%
+--Eidamská cihla: 113.79%
+--Kuřata kuchaňská celá: 122.14%
+---
+---

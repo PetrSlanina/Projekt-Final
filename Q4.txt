@@ -1,0 +1,69 @@
+WITH price_default AS (
+    SELECT DISTINCT 
+        "year",
+        product_name,
+        avg_price_value
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+    ORDER BY product_name, "year"
+),
+price_rise AS (
+    SELECT
+        *, -- přidal jsem výpočet meziročního procentuálního nárustu
+        LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC) AS previous_price_value,
+        ROUND(((avg_price_value - LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) / 
+               LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_price
+    FROM price_default
+),
+avg_price_rise AS (
+    SELECT 
+        "year",
+        ROUND(AVG(perc_narust_price), 2) AS avg_price_rise
+    FROM price_rise
+    GROUP BY "year"
+),
+pay_default AS (
+    SELECT DISTINCT
+        "year",
+        industry_branch_name,
+        avg_payroll_value
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+    ORDER BY industry_branch_name, "year" -- Opraveno na industry_branch_name
+),
+pay_rise AS (
+    SELECT 
+        *,	
+        LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC) AS previous_pay_value,
+        ROUND(((avg_payroll_value - LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) / 
+               LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_pay
+    FROM pay_default
+),
+avg_pay_rise AS (
+    SELECT
+        "year",
+        ROUND(AVG(perc_narust_pay), 2) AS avg_pay_rise
+    FROM pay_rise
+    GROUP BY "year"
+)
+SELECT
+    api."year",
+    apy.avg_pay_rise,
+    api.avg_price_rise,
+    ABS(apy.avg_pay_rise - api.avg_price_rise) AS difference
+FROM avg_pay_rise apy
+JOIN avg_price_rise api ON api."year" = apy."year"
+ORDER BY difference DESC;
+
+
+
+----------------------------------------------------------------------------
+--Co nejrychleji zdražuje (Nepoviná otázka)  ---Za celé obdobý kdy se projivý největší range cenový
+SELECT
+    product_name AS kategorie_potravin,
+    ROUND(((MAX(avg_price_value) - MIN(avg_price_value)) / MIN(avg_price_value)) * 100, 2) AS procentualni_rust
+FROM
+    t_Bc_Petr_Slanina_MBA_project_SQL_primary_final
+GROUP BY
+    product_name
+ORDER BY
+    procentualni_rust DESC 
+LIMIT 10;

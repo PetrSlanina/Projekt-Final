@@ -1,0 +1,52 @@
+-1.Rostou v průběhu let mzdy ve všech odvětvích, nebo v některých klesají?
+
+ -- První dotaz: Výběr všech sloupců z tabulky t_Petr_Slanina_project_SQL_primary_final
+SELECT * FROM t_Bc_Petr_Slanina_MBA_project_SQL_primary_final;
+
+-- Druhý dotaz: Výběr roku, odvětví, průměrného platu, rozdílu oproti minulému roku a procentuálního nárůstu/poklesu, seřazený podle průměrného platu sestupně
+WITH AverageWages AS (
+    SELECT
+        year AS Rok,
+        industry_branch_name AS Odvetvi,
+        ROUND(AVG(avg_payroll_value), 0) AS Prumerny_Plat
+    FROM
+        t_Bc_Petr_Slanina_MBA_project_SQL_primary_final
+    GROUP BY
+        year, industry_branch_name
+),
+WageDifferences AS (
+    SELECT
+        Rok,
+        Odvetvi,
+        Prumerny_Plat,
+        Prumerny_Plat - LAG(Prumerny_Plat, 1, Prumerny_Plat) OVER (PARTITION BY Odvetvi ORDER BY Rok) AS Rozdil_oproti_minulemu_roku,
+        ROUND(
+            ((Prumerny_Plat / LAG(Prumerny_Plat, 1, Prumerny_Plat) OVER (PARTITION BY Odvetvi ORDER BY Rok) - 1) * 100),
+            2
+        ) AS Procentualni_narust_pokles
+    FROM
+        AverageWages
+)
+SELECT
+    Rok,
+    Odvetvi,
+    Prumerny_Plat,
+    Rozdil_oproti_minulemu_roku,
+    Procentualni_narust_pokles
+FROM
+    WageDifferences
+ORDER BY
+    Prumerny_Plat DESC, Rok, Odvetvi;
+    
+   
+   
+   ------------------------------------------------------------------------------
+   /*
+ * -------
+ *
+ *Za roky 2007 až 2018. Největší procentuální nárůst mzdy byl zaznamenán v odvětví "Těžba a dobývání" v roce 2008, kde došlo k nárůstu o 13,11 %. Významný nárůst byl také v odvětví "Výroba a rozvod elektřiny, plynu, tepla a klimatizace vzduchu" v roce 2008 (13,57 %) a v "Profesních, vědeckých a technických činnostech" v roce 2008 (12,79 %). Mezi další odvětví s výrazným nárůstem patří "Ubytování, stravování a pohostinství" v roce 2017 (11,78 %) a "Kultura, zábavní a rekreační činnosti" v roce 2018 (10,95 %).
+Naopak největší pokles byl v letech 2009 až 2015 Největší procentuální pokles byl zaznamenán v odvětví "Peněžnictví a pojišťovnictví" v roce 2013, kde došlo k poklesu o 8,9 %. Významný pokles byl také v odvětví "Výroba a rozvod elektřiny, plynu, tepla a klimatizace vzduchu" v roce 2013 (-4,37 %) a v "Těžbě a dobývání" v roce 2009 (-3,74 %). Mezi další odvětví s výrazným poklesem patří "Profesní, vědecké a technické činnosti" v roce 2013 (-2,91 %) a "Veřejná správa a obrana; povinné sociální zabezpečení" v roce 2011 (-2,24 %).
+*
+ *
+ *
+ /
