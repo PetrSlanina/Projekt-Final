@@ -1,26 +1,42 @@
 --3.Která kategorie potravin zdražuje nejpomaleji (je u ní nejnižší percentuální meziroční nárůst)?
+
+
+WITH cte_q3 AS (
+    SELECT DISTINCT
+        "year",
+        product_name,
+        avg_price_value
+    FROM t_Bc_Petr_Slanina_MBA_project_SQL_primary_final
+),
+cte2_q3 AS (
+    SELECT
+        *,
+        LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC) AS previous_price_value
+    FROM cte_q3
+),
+cte3_q3 AS (
+    SELECT
+        *,
+        ROUND(((avg_price_value - previous_price_value) / previous_price_value) * 100, 2) AS perc_narust
+    FROM cte2_q3
+)
 SELECT
-    product_name AS kategorie_potravin,
-    ROUND(((MAX(avg_price_value) - MIN(avg_price_value)) / MIN(avg_price_value)) * 100, 2) AS procentualni_rust
-FROM
-    t_Bc_Petr_Slanina_MBA_project_SQL_primary_final
-GROUP BY
-    product_name
-ORDER BY
-    procentualni_rust ASC 
+    product_name,
+    ROUND(AVG(perc_narust), 2) AS perc_narust_final
+FROM cte3_q3
+GROUP BY product_name
+ORDER BY perc_narust_final ASC
 LIMIT 10;
 
 
------- Nejpomaleji zdražují Jakostní víno bílé  (8,31%), Přírodní minerální voda(15,6%) , Vepřová pečeně(18,22%)
----Vepřová pečeně s kostí: 51.56%
---Přírodní minerální voda uhličitá: 59.72%
---Jakostní víno bílé: 65.36%
---Hovězí maso zadní bez kosti: 69.28%
---Šunkový salám: 74.27%
-----Kapr zivý: 84.94%
---Mléko polotučné pasterované: 86.14%
---Pivo výčepní, světlé, lahvové: 104.4%
---Eidamská cihla: 113.79%
---Kuřata kuchaňská celá: 122.14%
----
----
+---Cukr krystalový
+--Cukr krystalový
+--Rajská jablka červená kulatá
+--Banány žluté
+--Vepřová pečeně s kostí
+--Přírodní minerální voda uhličitá
+--Šunkový salám
+--Jablka konzumní
+--Pečivo pšeničné bílé
+--Hovězí maso zadní bez kosti
+--Kapr živýCukr krystalový

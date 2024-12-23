@@ -1,20 +1,20 @@
-WITH cte_gdp AS (
+WITH Q5_gdp AS (
     SELECT
         "year",
         country,
         GDP,
         LAG(GDP) OVER (ORDER BY "year" ASC) AS gdp_previous_year,
-ROUND(
-    CAST(
-        (GDP - LAG(GDP) OVER (ORDER BY "year")) / NULLIF(LAG(GDP) OVER (ORDER BY "year"), 0) * 100
-        AS NUMERIC
-    ), 2
-) AS gdp_rise
+        ROUND(
+            CAST(
+                (GDP - LAG(GDP) OVER (ORDER BY "year")) / NULLIF(LAG(GDP) OVER (ORDER BY "year"), 0) * 100
+                AS NUMERIC
+            ), 2
+        ) AS gdp_rise
     FROM t_Bc_Petr_Slanina_MBA_project_sql_secondary_final
     WHERE country = 'Czech Republic'
 ),
 price_default AS (
-    SELECT DISTINCT 
+    SELECT DISTINCT
         "year",
         product_name,
         avg_price_value
@@ -25,7 +25,7 @@ price_rise AS (
     SELECT
         *,
         LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC) AS previous_price_value,
-        ROUND(((avg_price_value - LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) / 
+        ROUND(((avg_price_value - LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) /
                 LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_price
     FROM price_default
 ),
@@ -46,9 +46,9 @@ pay_default AS (
 ),
 pay_rise AS (
     SELECT
-        *, 
+        *,
         LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC) AS previous_pay_value,
-        ROUND(((avg_payroll_value - LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) / 
+        ROUND(((avg_payroll_value - LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) /
                LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_pay
     FROM pay_default
 ),
@@ -64,7 +64,186 @@ SELECT
     gdp.gdp_rise,
     apy.avg_pay_rise,
     api.avg_price_rise
-FROM cte_gdp gdp
+FROM Q5_gdp gdp
 JOIN avg_pay_rise apy ON apy."year" = gdp."year"
 JOIN avg_price_rise api ON api."year" = gdp."year"
+ORDER BY gdp."year";
+
+
+---------------------------------------------------------------------------------------------
+--------------------------------------------------------- Agregační funkce + korelace SQL ověřím si to rači v Pythonu
+WITH Q5_gdp AS (
+    SELECT
+        "year",
+        country,
+        GDP,
+        LAG(GDP) OVER (ORDER BY "year" ASC) AS gdp_previous_year,
+        ROUND(
+            CAST(
+                (GDP - LAG(GDP) OVER (ORDER BY "year")) / NULLIF(LAG(GDP) OVER (ORDER BY "year"), 0) * 100
+                AS NUMERIC
+            ), 2
+        ) AS gdp_rise
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_secondary_final
+    WHERE country = 'Czech Republic'
+),
+price_default AS (
+    SELECT DISTINCT
+        "year",
+        product_name,
+        avg_price_value
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+    ORDER BY product_name, "year"
+),
+price_rise AS (
+    SELECT
+        *,
+        LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC) AS previous_price_value,
+        ROUND(((avg_price_value - LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) /
+                LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_price
+    FROM price_default
+),
+avg_price_rise AS (
+    SELECT
+        "year",
+        ROUND(AVG(perc_narust_price), 2) AS avg_price_rise
+    FROM price_rise
+    GROUP BY "year"
+),
+pay_default AS (
+    SELECT DISTINCT
+        "year",
+        industry_branch_name,
+        avg_payroll_value
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+    ORDER BY industry_branch_name, "year"
+),
+pay_rise AS (
+    SELECT
+        *,
+        LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC) AS previous_pay_value,
+        ROUND(((avg_payroll_value - LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) /
+               LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_pay
+    FROM pay_default
+),
+avg_pay_rise AS (
+    SELECT
+        "year",
+        ROUND(AVG(perc_narust_pay), 2) AS avg_pay_rise
+    FROM pay_rise
+    GROUP BY "year"
+)
+SELECT
+    gdp."year",
+    gdp.gdp_rise,
+    apy.avg_pay_rise,
+    api.avg_price_rise,
+    MIN(gdp.gdp_rise) OVER () AS min_gdp_rise,
+    MAX(gdp.gdp_rise) OVER () AS max_gdp_rise,
+    AVG(gdp.gdp_rise) OVER () AS avg_gdp_rise,
+    MIN(apy.avg_pay_rise) OVER () AS min_avg_pay_rise,
+    MAX(apy.avg_pay_rise) OVER () AS max_avg_pay_rise,
+    AVG(apy.avg_pay_rise) OVER () AS avg_avg_pay_rise,
+    MIN(api.avg_price_rise) OVER () AS min_avg_price_rise,
+    MAX(api.avg_price_rise) OVER () AS max_avg_price_rise,
+    AVG(api.avg_price_rise) OVER () AS avg_avg_price_rise
+FROM Q5_gdp gdp
+JOIN avg_pay_rise apy ON apy."year" = gdp."year"
+JOIN avg_price_rise api ON api."year" = gdp."year"
+ORDER BY gdp."year";
+
+
+------------------------------------------------------------------------------------------
+
+WITH Q5_gdp AS (
+    SELECT
+        "year",
+        country,
+        GDP,
+        LAG(GDP) OVER (ORDER BY "year" ASC) AS gdp_previous_year,
+        ROUND(
+            CAST(
+                (GDP - LAG(GDP) OVER (ORDER BY "year")) / NULLIF(LAG(GDP) OVER (ORDER BY "year"), 0) * 100
+                AS NUMERIC
+            ), 2
+        ) AS gdp_rise
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_secondary_final
+    WHERE country = 'Czech Republic'
+),
+price_default AS (
+    SELECT DISTINCT
+        "year",
+        product_name,
+        avg_price_value
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+    ORDER BY product_name, "year"
+),
+price_rise AS (
+    SELECT
+        *,
+        LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC) AS previous_price_value,
+        ROUND(((avg_price_value - LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) /
+                LAG(avg_price_value, 1) OVER (PARTITION BY product_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_price
+    FROM price_default
+),
+avg_price_rise AS (
+    SELECT
+        "year",
+        ROUND(AVG(perc_narust_price), 2) AS avg_price_rise
+    FROM price_rise
+    GROUP BY "year"
+),
+pay_default AS (
+    SELECT DISTINCT
+        "year",
+        industry_branch_name,
+        avg_payroll_value
+    FROM t_Bc_Petr_Slanina_MBA_project_sql_primary_final
+    ORDER BY industry_branch_name, "year"
+),
+pay_rise AS (
+    SELECT
+        *,
+        LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC) AS previous_pay_value,
+        ROUND(((avg_payroll_value - LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) /
+               LAG(avg_payroll_value, 1) OVER (PARTITION BY industry_branch_name ORDER BY "year" ASC)) * 100, 2) AS perc_narust_pay
+    FROM pay_default
+),
+avg_pay_rise AS (
+    SELECT
+        "year",
+        ROUND(AVG(perc_narust_pay), 2) AS avg_pay_rise
+    FROM pay_rise
+    GROUP BY "year"
+),
+correlation AS (
+    SELECT
+        CORR(gdp.gdp_rise, apy.avg_pay_rise) AS corr_gdp_pay,
+        CORR(gdp.gdp_rise, api.avg_price_rise) AS corr_gdp_price,
+        CORR(apy.avg_pay_rise, api.avg_price_rise) AS corr_pay_price
+    FROM Q5_gdp gdp
+    JOIN avg_pay_rise apy ON apy."year" = gdp."year"
+    JOIN avg_price_rise api ON api."year" = gdp."year"
+)
+SELECT
+    gdp."year",
+    gdp.gdp_rise,
+    apy.avg_pay_rise,
+    api.avg_price_rise,
+    MIN(gdp.gdp_rise) OVER () AS min_gdp_rise,
+    MAX(gdp.gdp_rise) OVER () AS max_gdp_rise,
+    AVG(gdp.gdp_rise) OVER () AS avg_gdp_rise,
+    MIN(apy.avg_pay_rise) OVER () AS min_avg_pay_rise,
+    MAX(apy.avg_pay_rise) OVER () AS max_avg_pay_rise,
+    AVG(apy.avg_pay_rise) OVER () AS avg_avg_pay_rise,
+    MIN(api.avg_price_rise) OVER () AS min_avg_price_rise,
+    MAX(api.avg_price_rise) OVER () AS max_avg_price_rise,
+    AVG(api.avg_price_rise) OVER () AS avg_avg_price_rise,
+    corr.corr_gdp_pay,
+    corr.corr_gdp_price,
+    corr.corr_pay_price
+FROM Q5_gdp gdp
+JOIN avg_pay_rise apy ON apy."year" = gdp."year"
+JOIN avg_price_rise api ON api."year" = gdp."year"
+CROSS JOIN correlation corr
 ORDER BY gdp."year";
